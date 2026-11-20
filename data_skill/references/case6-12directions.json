@@ -1,0 +1,34 @@
+{
+  "experiment_id": "exp_case6_12dir_v1",
+  "frequency_hz": 1000000000,
+  "material": "PEC",
+  "polarization": "fixed_linear_reference",
+  "expected_direction_count": 12,
+  "geometries": [
+    {
+      "geometry_id": "case6_01",
+      "family": "case6",
+      "geometry_kind": "parameterized_cad",
+      "geometry_split": "train",
+      "cad_units": "m",
+      "cfx": "case6/case6_01.cfx",
+      "cfm": "case6/case6_01.cfm",
+      "nas": "case6/case6_01.nas",
+      "pre": "case6/case6_01.pre"
+    }
+  ],
+  "directions": [
+    {"theta": 35, "phi": 0, "group": "train"},
+    {"theta": 35, "phi": 90, "group": "train"},
+    {"theta": 45, "phi": 0, "group": "train"},
+    {"theta": 45, "phi": 90, "group": "train"},
+    {"theta": 45, "phi": 180, "group": "train"},
+    {"theta": 55, "phi": 0, "group": "train"},
+    {"theta": 55, "phi": 90, "group": "train"},
+    {"theta": 55, "phi": 180, "group": "train"},
+    {"theta": 40, "phi": 45, "group": "dev"},
+    {"theta": 50, "phi": 85, "group": "dev"},
+    {"theta": 40, "phi": 105, "group": "test"},
+    {"theta": 50, "phi": 175, "group": "test"}
+  ]
+}

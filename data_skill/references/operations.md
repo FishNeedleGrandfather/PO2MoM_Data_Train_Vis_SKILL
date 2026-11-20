@@ -1,4 +1,6 @@
-# Operating the bundled pipelines
+# Reproducing the historical pipelines
+
+These commands reproduce the original five-family or six-fixed-geometry work. They do not accept a new `case6` or an arbitrary list of 12 angle pairs. For a new experiment, follow [new-experiment.md](new-experiment.md) and adapt a separate work copy under its own experiment ID.
 
 The bundled source tree is `scripts/simulation_A/` and `scripts/simulation_smallbatch/`. It contains code only. `launch.ps1` stages code into an existing, separately chosen *work root* with sibling `simulation_A` and `simulation_smallbatch` folders. It refuses to overwrite a differing target file. Copy the real project input files into that work root yourself: `simulation_A/variants.md`, each base `caseN/caseN.cfx`, and prepared variant input folders; fixed-case CFM/NAS/PRE go under `simulation_smallbatch/caseN` and `case_single`. The bundling script does not create CAD or mesh data and does not stage any `.pt`, `.cfm`, `.nas`, `.os`, or logs. Paths are relative to the staged scripts. For mesh preparation the CADFEKO path is passed explicitly to `prepare_meshes.ps1`; FEKO binaries remain external.
 

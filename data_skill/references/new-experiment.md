@@ -1,0 +1,35 @@
+# Starting a new dataset task
+
+This workflow describes what to adapt. Read the invariant [sample and validation contract](schema.md) alongside it. The bundled Python/PowerShell code remains the historical `case1`–`case5`, 93-direction implementation; it does **not** already run `case6` or arbitrary angle pairs.
+
+## 1. Lock a manifest before solving
+
+Give the experiment a unique ID and a new output root. Inventory each geometry's source CFX (or fixed, nonparameterized CFM), units, material, bodies/contacts, mesh policy, parameter names and values if applicable, source polarization, frequency, and current output request. Set `geometry_kind` to `parameterized_cad` with a required `cfx`, or to `fixed_mesh` where `cfx` may be omitted; both still need CFM/NAS/PRE for file preflight. If an optional CFX is supplied, file preflight checks it. For a parameterized family, assign immutable variant IDs and parameter values; keep remeshes of one geometry in the same geometry group. Record expected target triangle counts only after meshing. Put train/dev/test assignment at **whole geometry** level when claiming A1 new-geometry prediction; angle groups are a separate axis. Keep prototypes repeatedly used in development out of untouched final tests.
+
+Represent incidence directions as a list of explicit objects `{theta, phi, group}`. Each object is one direction and one MoM/PO pair. Use integer degrees with `0≤θ≤180` and canonical `0≤φ<360`; write `φ=0` for the direction also described as `φ=360`. This prevents equivalent 0/360 directions from being counted twice or assigned to different groups. Do not pass two lists to a Cartesian-product loop unless the experimental plan explicitly defines that product. The [case6 example](case6-12directions.json) has exactly 12 pairs across three angle groups; it is a structural example, not a recommendation to run those angles or to assign a one-geometry final test. Run from the Skill folder:
+
+```powershell
+python .\scripts\check_experiment.py .\references\case6-12directions.json
+python .\scripts\check_experiment.py .\references\case6-12directions.json --check-files
+```
+
+The first command checks ID, unique canonical pairs, bounds, group counts, and matching expected direction count without FEKO. The second also checks local CFM/NAS/PRE and any declared CFX paths relative to the manifest; the example will fail until those files exist. Replace the illustrative `polarization` label with the actual PRE plane-wave source settings before a solve. Use your actual manifest with real paths at the new experiment root.
+
+## 2. Adapt the pipeline deliberately
+
+| Component | Change for `case6`, 12 explicit pairs | Reuse |
+|---|---|---|
+| `automation/setup_variants.py` and `variants.md` | Parser `case[1-5]`, exactly 100 rows, six `a1`–`a6` columns, case loops, source CFX naming, and generated IDs must follow the new geometry inventory; fixed case6 may need no parameter setup. | Parameter-to-Lua generation pattern, source CFX hash/metadata. |
+| `prepare_meshes.ps1`, `automation/prepare_variant.lua`, `verify_prepared_meshes.py` | Update case choices, 1..20/100 assumptions, CAD variables/units, frequency, mesh and output paths. Do not delete prior meshes implicitly. | CADFEKO SimulationMesh CFM export, CFM-to-NAS conversion, order verification. |
+| `simulation_A/run_variants.py` | Replace `ANGLE_GROUPS` and `ANGLES` with the manifest's 12 **pairs**; remove every `93` assertion, count, progress message, dataset metadata/coverage check, and cleanup loop assumption. Update variant regex, parser case choices, case queue, plan lookup and dataset filename for `case6`. Audit PRE source/card values against the new CFX/CFM, including frequency/polarization. | Per-angle PRE generation, `fixed.complete`, FEKO solve, status/failure/lock/stop, paired build and guarded cleanup. |
+| `simulation_smallbatch/run_simulations.py` and `dataset_builder_AllAngle.py` if using fixed-case route | `CASES` excludes case6; `THETAS`/`PHIS`, `run_case` nested loops, builder nested loops and `CASES[:5]` combined output encode the old grid and five-case lineage. Replace with explicit pair iteration and matching builder validation; do not treat two CLI lists as 12 pairs. | `make_pre`, `solve`, current validation, `build_geometry` and `make_sample` after adapting supported cases. |
+| `collect_datasets.ps1`, `dataset/comb.py` | Fixed loops 1..5, 1..20, 100 files, exact 93 samples, 57/18/18 angle counts, 01–12/13–15/16–20 geometry splits and nine output names are historical. Define new groups and expected counts from the locked manifest; avoid name collisions with the old split. | Collision-aware collection, per-sample provenance insertion and final count checks. |
+| `scripts/launch.ps1` | Historical `-Variant` validation allows `case1`–`case5` only. Provide a separate entry for the new experiment and an explicit `-Manifest` or equivalent; do not broaden it silently. | Preview/staging pattern and explicit solve gate. |
+
+For this example, a correct direction loop visits exactly 12 records, produces 12 `thetaDDD_phiDDD` directories and 24 method-specific solves per geometry. An incorrect `theta=[35,40,45,50,55]`, `phi=[0,...]` product would yield more directions. Check `len(angles)==len(set((theta,phi)))==12` *before* creating PREs and again before saving. Use one root per experiment ID so old markers and datasets cannot satisfy a new plan accidentally.
+
+## 3. Mesh, solve, and accept
+
+For parameterized CAD, inspect the CFX and evaluate its parameters and units, then export the actual CADFEKO SimulationMesh to CFM. For a fixed mesh without CFX, inspect the supplied CFM and its units. Convert **that CFM** to NAS and compare triangle count and element order. Prepare one MoM/PO PRE pair from the mesh and check frequency, θ/φ, polarization, current requests, method cards, CFM reference and surface labels. Smoke solve a few angles spanning θ, verify every current row index `1..N` once, finite values and MoM `.out` convergence. Only then run the locked list. Preserve stop/resume and failure logs; do not clean failed work. Build only from verified pairs; `X[:,7:13]=η₀ J_PO`, `Y=η₀(J_MoM−J_PO)`, `scale=1/η₀`, with the existing clustering/edge rules unless a documented new schema is intended. Reload output and verify all 12 pairs per geometry, group labels, geometry ID, mesh hash, tensor shapes, finite values, and disjoint geometry groups. Archive and clean intermediates only after verification and when requested. Record code revision, manifest hash, FEKO version, inputs and outputs for reproduction.
+
+Parameter choices such as 12 angles, number of geometries, group proportions, `--np`, `--jobs`, mesh size, frequency, and clustering targets are experiment-specific. Changing frequency or polarization also requires checking source cards, mesh, normalization context, dataset metadata and downstream training assumptions. Historical `simulation_A` and `simulation_smallbatch` values are examples, not defaults for new tasks.

@@ -1,9 +1,21 @@
-# PO2MoM_TF project skills
+# PO2MoM_TF 项目交接
 
-These three Codex skills hand off the project's data, training, and evaluation workflows:
+三个子目录可作为独立 Skill 使用。新任务从下面的交接流程进入；只有要复算或解释已有结果时，才按历史实验找文件。仓库包含文档和数据工具，不包含 CAD、数据集、权重或发布凭据。
 
-- [`data_skill`](data_skill/SKILL.md): FEKO simulation, dataset construction, schemas, and reusable scripts.
-- [`train_skill`](train_skill/SKILL.md): V7 architecture, checkpoints, training, and evaluation splits.
-- [`vis_val_skill`](vis_val_skill/SKILL.md): validation, experiment records, visualization, and GitHub Pages publication.
+## 开始新任务
 
-Install each directory as a separate skill, or read its `SKILL.md` before working in that area. The bundled scripts contain no CAD meshes, simulation outputs, model weights, datasets, or credentials. Check the current project files and actual run state before executing a workflow; these skills document the project as of 2026-11-20.
+| 负责方 | 先确定 | 交给下一阶段 |
+|---|---|---|
+| [data](data_skill/SKILL.md) | 几何标识与网格、频率与极化、实际要算的方向对、每个方向的求解方法 | 数据集及样本格式、归一化与单位、网格标识、实际完成的方向对和缺失项 |
+| [train](train_skill/SKILL.md) | 训练、适配或零样本测试的目标；几何和角度的划分；是否加载已有权重 | 可定位的 checkpoint、匹配的模型代码与调用参数、实际参与训练和选模的划分，以及封存的测试清单 |
+| [vis_val](vis_val_skill/SKILL.md) | 上述数据、模型和划分能否匹配；这次需要比较哪些指标 | 带分组、样本数和基线的评测结果、实验记录及相应网页；仅在要求发布时更新远端 |
+
+例如，若新目标 `case6` 只有 12 个指定方向，数据阶段交付的是 **12 对** `(theta, phi)`，不是两个角度列表的笛卡尔积。若目标是检验已有模型对新几何的泛化，直接把冻结的权重交给评测方；若用其中部分方向做适配，则另立实验编号，记录哪些标签用于适配、哪些仍可用于评测。不要把缺失方向补成零，也不要覆盖旧实验。
+
+## 查询或复现历史工作
+
+- 固定六几何的 629 方向数据、A1 五族变体的 93 方向数据和九种组合文件：见 [data 入口](data_skill/SKILL.md)。
+- V7 的网络结构、旧 checkpoint 和 V7A 的实际选模方式：见 [train 入口](train_skill/SKILL.md)。
+- 已有记录、全角度与变体页面、GitHub Pages 仓库对应关系：见 [vis_val 入口](vis_val_skill/SKILL.md)。
+
+复现时保持对应版本与约定；新任务不要自动继承旧目录名、几何数量、角度网格、训练超参数或发布目标。

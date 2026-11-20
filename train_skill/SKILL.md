@@ -1,20 +1,24 @@
 ---
 name: po2mom-v7-training
-description: Rebuild, adapt, review, or plan training for this PO-to-MoM V7 network and its A1 geometry/angle datasets. Use for architecture, checkpoint, split, loss, and evaluation decisions in PO2MoM_TF; not for FEKO simulation or website work.
+description: Plan, build, review, or explain PO-to-MoM current-correction training in PO2MoM_TF, including new geometries, angle sets, V7 architecture changes, checkpoints, splits, and metrics. Not for FEKO simulation or website work.
 ---
 
-# PO→MoM V7 training handoff
+# PO→MoM training handoff
 
-Work from the current code, not from this snapshot alone. The project root is the directory containing `PO2MoM_TF`; the current model/training entry points are `PO2MoM_TF/trainV7A.py` and `PO2MoM_TF/trainV7AllAngle.py`. Read both before changing a run. `PO2MoM_TF/record.md` has measured experiments; distinguish those from code settings. The user normally wants the design discussed before code changes, and does not want extra BAT files.
+Project root contains `PO2MoM_TF`. Re-read the relevant source at the start of a task; this skill describes a verified V7 snapshot, not a permanent experiment configuration. The user normally wants to discuss a design before changing training code and does not want extra BAT files.
 
-Read [references/network.md](references/network.md) when rebuilding or modifying model, feature, graph, cache, checkpoint, or forward behavior. Read [references/training.md](references/training.md) when planning a run, changing data splits/optimizer/loss, selecting a checkpoint, or interpreting metrics. Read both for a new end-to-end training scheme.
+## Start a new task
 
-Core invariants:
+Read [references/new-experiment.md](references/new-experiment.md) first. It routes from the scientific objective through data provenance, split, model changes, checkpoint compatibility, one-sample smoke check, training strategy, and evaluation handoff. Use it even when a new experiment resembles A1: a new case, arbitrary direction list, and new experiment ID do not inherit V7A's paths or angle rules. Read [references/network.md](references/network.md) when rebuilding or changing the network and [references/training.md](references/training.md) for loss, optimizer, and evaluation contracts. Do not start a costly run until the user's intended design and compute scope are clear.
 
-- Predict the normalized six-component complex-current correction `Y = η₀(J_MoM − J_PO)` from normalized `η₀ J_PO`; the decoder output is projected into the local tangent plane. `criterion(pred, Y)` is correction MSE. A zero correction is the PO MSE baseline. Neither is current-relative error.
-- Keep a whole `variant_id` in one geometry partition. In the current A1 run, `XVXA` is training and `VVVA+VVCA` selects checkpoints. `CVCA` uses held-out C geometries, but C angles have already influenced model selection through `VVCA`; describe its geometry and angle novelty separately. The V in filenames marks the variant dimension; the A marks angle. Reinspect `simulation_A/dataset/comb.py` if the partition policy changes.
-- Current `MG_NUM=4` calls reuse the same `mg_transformer` and `local_exchange_post` parameters. Do not load a state dict into a different structure without checking keys, shapes, normalization, and call count.
-- Every gradient accumulation `optimizer.step()` must be followed by `optimizer.zero_grad()`; experiments 17/18 in `record.md` are invalid because this was omitted.
-- Report exact split, initialization checkpoint, optimizer state choice, `MG_NUM`, validation selection rule, and whether evaluation geometry or angles appeared in pretraining. Do not claim new-geometry performance from adjacent-angle validation.
+## Reproduce or query historical work
 
-For a lightweight, non-training check after an edit, run `python -m py_compile PO2MoM_TF/trainV7A.py` and inspect the model loader in `PO2MoM_TF/export_allangle_visualization.py` (its `load_model_class` extracts only the model classes, avoiding training at import). For data shape and split counts, use the assertions documented in [references/training.md](references/training.md). Do not import `trainV7A.py` merely to inspect classes: its top-level code loads data and starts training.
+Read [references/history.md](references/history.md) and the current `PO2MoM_TF/record.md`. Verify checkpoint metadata, data split, and code version before comparing runs. Read [references/network.md](references/network.md) only if architecture is in question; read [references/training.md](references/training.md) for metric interpretation. An old result is evidence for its own split and initialization, not an automatically valid baseline for a new task.
+
+## Invariants across both paths
+
+- Predict a six-component complex-current correction, not the full current. With eta normalization, `Y=η₀(J_MoM−J_PO)` and `X[:,7:13]=η₀J_PO`; output is projected tangentially. `MSE(delta,Y)` and zero-correction PO MSE are not current-relative error.
+- Keep whole geometries (`variant_id` or equivalent mesh identity) in a single geometry partition when claiming unseen-geometry performance. Track angle partitions separately and include any angle exposure through validation or pretraining.
+- Clear accumulated gradients after *every* `optimizer.step()`. Choose batch scaling according to actual accumulation count, including a short final batch.
+- Treat `MG_NUM`, shared versus unshared blocks, normalization, and tensor shapes as checkpoint compatibility decisions. A successful `load_state_dict` is necessary but does not prove matching experiment semantics.
+- Never import `trainV7A.py` or `trainV7AllAngle.py` just to inspect their classes: their top-level code loads data and starts training. `PO2MoM_TF/export_allangle_visualization.py:load_model_class` extracts only model classes. The optional [scripts/check_contract.py](scripts/check_contract.py) performs a small synthetic forward/backward without training or saving.
